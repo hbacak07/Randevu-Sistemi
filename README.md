@@ -269,19 +269,6 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Diğer fikirler: e-posta gönderimi (Nodemailer), hizmet veren paneli (çalışma saatlerini arayüzden düzenleme), testler (Vitest + Supertest), Docker ile tam paketleme.
 
-## 📤 GitHub'a yükleme
-
-```bash
-cd randevu-sistemi
-git init
-git add .
-git commit -m "İlk sürüm: randevu sistemi"
-git branch -M main
-git remote add origin https://github.com/<kullanici-adin>/randevu-sistemi.git
-git push -u origin main
-```
-
-GitHub'da önce boş bir repo oluştur (README eklemeden), sonra yukarıdaki komutları çalıştır. Push sonrası **Actions** sekmesinde CI otomatik çalışır.
 
 ## 📄 Lisans
 
