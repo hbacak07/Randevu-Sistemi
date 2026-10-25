@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(CUSTOMER)
+  /// IANA zaman dilimi, ör. "Europe/Istanbul"
+  timezone     String   @default("Europe/Istanbul")
+  createdAt    DateTime @default(now())
+
+  services         Service[]
+  workingHours     WorkingHour[]
+  providerBookings Booking[]     @relation("ProviderBookings")
+  customerBookings Booking[]     @relation("CustomerBookings")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  providerId  String
+  name        String
+  durationMin Int
+  priceCents  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  provider User      @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([providerId])
+}
+
+/// Hizmet verenin haftalık çalışma saatleri (kendi zaman diliminde)
+model WorkingHour {
+  id         String @id @default(cuid())
+  providerId String
+  /// 1 = Pazartesi ... 7 = Pazar (Luxon ile aynı)
+  weekday    Int
+  /// "09:00" formatında
+  startTime  String
+  endTime    String
+
+  provider User @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, weekday])
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  serviceId  String
+  providerId String
+  customerId String
+  /// Tüm zamanlar UTC olarak saklanır
+  startsAt   DateTime
+  endsAt     DateTime
+  status     BookingStatus @default(CONFIRMED)
+  createdAt  DateTime      @default(now())
+
+  service  Service @relation(fields: [serviceId], references: [id])
+  provider User    @relation("ProviderBookings", fields: [providerId], references: [id])
+  customer User    @relation("CustomerBookings", fields: [customerId], references: [id])
+
+  @@index([providerId, startsAt])
+  @@index([customerId])
+}
