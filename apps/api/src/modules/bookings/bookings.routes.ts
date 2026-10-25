@@ -58,7 +58,8 @@ bookingsRouter.post(
 
       // Slotu sunucuda yeniden hesapla: istemcinin gönderdiğine körü körüne güvenme
       const availability = await getAvailability({ providerId: service.providerId, serviceId, date }, tx);
-      const slot = availability.slots.find((s) => DateTime.fromISO(s.startsAt).equals(start.toUTC()));
+      // equals() saat dilimini de karşılaştırır; biz yalnızca aynı ana bakıyoruz
+      const slot = availability.slots.find((s) => DateTime.fromISO(s.startsAt).toMillis() === start.toMillis());
 
       if (!slot) throw badRequest('Bu saat çalışma saatleri dışında veya geçersiz');
       if (!slot.available) throw conflict('Bu saat az önce doldu, lütfen başka bir saat seçin');
@@ -142,11 +143,14 @@ bookingsRouter.post(
     if (booking.status === BookingStatus.CANCELLED) throw badRequest('Randevu zaten iptal edilmiş');
     if (booking.startsAt < new Date()) throw badRequest('Geçmiş randevu iptal edilemez');
 
-    const updated = await prisma.booking.update({
-      where: { id: booking.id },
+    // Koşullu güncelleme: aynı anda gelen iki iptal isteğinden yalnızca biri başarılı olur
+    const { count } = await prisma.booking.updateMany({
+      where: { id: booking.id, status: BookingStatus.CONFIRMED },
       data: { status: BookingStatus.CANCELLED },
-      include: bookingInclude,
     });
+    if (count === 0) throw badRequest('Randevu zaten iptal edilmiş');
+
+    const updated = { ...booking, status: BookingStatus.CANCELLED };
 
     const tz = booking.provider.timezone;
     const cancelledByCustomer = userId === booking.customerId;

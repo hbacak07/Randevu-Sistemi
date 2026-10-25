@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+
+# Ortam değişkenleri (gizli anahtarlar içerir)
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+.vscode/
+.idea/
